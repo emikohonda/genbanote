@@ -1,11 +1,7 @@
 import '@/styles/history.css';
 import HistoryTimeline from '@/components/HistoryTimeline';
 
-export default function SiteHistoryPage({
-  params,
-}: {
-  params: { id: string };
-}) {
+export default function SiteHistoryPage({ params }: any) {
   const { id } = params;
 
   return (
