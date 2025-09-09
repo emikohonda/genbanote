@@ -1,0 +1,328 @@
+.wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.card {
+  background: #fff;
+  padding: 20px;
+  border-radius: 16px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+  max-width: 720px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.title {
+  font-size: 25px;
+  font-weight: 700;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.grid {
+  display: grid;
+  gap: 12px;
+}
+
+/* フィールド共通 */
+.field {
+  display: grid;
+  gap: 6px;
+}
+
+.label {
+  font-size: 15px;
+  font-weight: 600;
+  color: #222;
+  margin-bottom: 2px;
+  transition: color 0.2s ease;
+}
+
+.label:focus-within .label {
+  color: #0070f3
+}
+
+/* 入力系（カード内だけに限定） */
+.input,
+.select {
+  height: 36px;
+  padding: 6px 10px;
+  border: 1px solid #d6d6d6;
+  border-radius: 8px;
+  outline: none;
+  width: 100%;
+  background: #fff;
+}
+
+.input:focus,
+.select:focus {
+  border-color: #0070f3;
+  box-shadow: 0 0 0 3px rgba(0, 112, 243, 0.15);
+}
+
+/* エラーっぽいときの簡易表示（aria-invalid=true のとき） */
+.input[aria-invalid="true"],
+.select[aria-invalid="true"] {
+  border-color: #e65a5a;
+}
+
+/* チェックボックスのグリッド */
+.checkboxGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+.checkboxLabel {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+  background: #fafafa;
+  border: 1px solid #eee;
+  border-radius: 8px;
+}
+
+/* アクション行 */
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 30px;
+}
+
+/* ボタン */
+.btn {
+  background: #0070f3;
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  text-align: center;
+  font-weight: 600;
+}
+
+.btn:hover {
+  filter: brightness(0.95);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* リンクボタン（ゴースト） */
+.btnGhost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid #cfd8e3;
+  background: #fff;
+  color: #0f172a;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.btnGhost:hover {
+  background: #f6f7fb;
+}
+
+/* ===== Modal ===== */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: grid;
+  place-items: center;
+  z-index: 1000;
+  animation: overlayFade 160ms ease-out;
+}
+
+@keyframes overlayFade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.modal {
+  position: relative;
+  width: min(680px, 92vw);
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  padding: 24px 24px 20px;
+  animation: modalPop 180ms ease-out;
+}
+
+@keyframes modalPop {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.modalClose {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  border: none;
+  background: transparent;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  color: #666;
+}
+
+.modalTitle {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 8px 0 8px;
+}
+
+.modalBody {
+  font-size: 16px;
+  line-height: 1.7;
+  color: #333;
+  margin-bottom: 20px;
+}
+
+.modalActions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.btnPrimary {
+  display: inline-block;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: #2563eb;
+  /* 目に優しいブルー。ブランド色に合わせてOK */
+  color: #fff;
+  text-decoration: none;
+  font-weight: 600;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.btnPrimary:hover {
+  opacity: 0.95;
+}
+
+.btnSecondary {
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: #f3f4f6;
+  color: #111;
+  border: 1px solid #e5e7eb;
+  font-weight: 600;
+}
+
+/* レスポンシブ */
+/* ==== モバイル（~639px）だけで上書き。PCの見た目はそのまま維持 ==== */
+@media (max-width: 639px) {
+
+  /* 画面端の誤タップ防止 & iPhoneノッチ対応 */
+  .card {
+    padding: 16px;
+    padding-left: calc(16px + env(safe-area-inset-left));
+    padding-right: calc(16px + env(safe-area-inset-right));
+  }
+
+  /* ラベル・入力欄の間隔を統一（スマホ時のみ） */
+  .field {
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+
+  /* タップしやすい高さ・iOSフォーカス時の拡大防止（スマホのみ） */
+  .input,
+  .select {
+    min-height: 44px;
+    /* 指で押しやすい高さ */
+    font-size: 16px;
+    /* iOSズーム防止（16px以上） */
+    line-height: 1.4;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* フォーカスでラベルを青く（スマホのみ） */
+  .field:focus-within .label {
+    color: #0070f3;
+  }
+
+  /* チェックボックス：当たり判定を広く、見やすく（スマホのみ） */
+  .checkboxLabel {
+    min-height: 44px;
+    gap: 10px;
+  }
+
+  .checkboxLabel input[type="checkbox"] {
+    transform: scale(1.2);
+    accent-color: #0070f3;
+  }
+
+  /* チェックボックスの列数：スマホは1列 */
+  .checkboxGrid {
+    grid-template-columns: 1fr;
+  }
+
+  /* ボタン：スマホは縦並び＆全幅 */
+  .actions {
+    flex-direction: column;
+  }
+
+  .btn,
+  .btnGhost {
+    min-height: 48px;
+    width: 100%;
+    font-size: 16px;
+  }
+
+  /* タイトルの視認性（スマホのみ少し小さめに） */
+  .title {
+    font-size: 18px;
+    margin-bottom: 14px;
+  }
+
+  /* 年配でも見やすい配慮（スマホ時は文字と押しやすさUP） */
+  @media (max-width: 600px) {
+    .modal {
+      padding: 22px 18px 18px;
+    }
+
+    .modalTitle {
+      font-size: 20px;
+    }
+
+    .modalBody {
+      font-size: 17px;
+    }
+
+    .btnPrimary,
+    .btnSecondary {
+      padding: 12px 16px;
+      font-size: 16px;
+    }
+  }
+
+  /* コントラストを少し強めたい場合は以下を有効化
+.modal { background: #fff; }
+.modalBody { color: #222; }
+*/
+}

@@ -1,0 +1,399 @@
+/* レイアウト */
+.calendar-page .cal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.cal-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0;
+}
+
+/* 操作用ボタン（最小限） */
+.btn-ghost {
+  background: transparent;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+.btn-ghost:hover {
+  background: #f9fafb;
+}
+
+/* カレンダーグリッド */
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr)); /* ← これが効く */
+  gap: 6px; /* 既存値。スマホは下で上書き */
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* グリッドの子要素が幅を主張して押し出さないように */
+.cal-grid > * {
+  min-width: 0;                 /* ← 重要（weekday・cell 両方に効く） */
+}
+
+.cal-weekday,
+.cal-cell {
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.cal-weekday {
+  text-align: center;
+  font-size: 12px;
+  color: #6b7280;
+  padding: 8px 0;
+}
+.cal-cell {
+  position: relative;
+  height: 92px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 8px;
+  text-align: left;
+  cursor: default;
+}
+.cal-cell .date-number {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+}
+.cal-cell.is-out .date-number {
+  color: #9ca3af;
+}
+
+/* 予定がある日（クリック可能） */
+.cal-cell.has-events {
+  cursor: pointer;
+  border-color: #d1d5db;
+  background: #f0f7ff;
+}
+.cal-cell.has-events:hover {
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06);
+  transform: translateY(-1px);
+  transition: all .12s ease;
+  background: #e6f0ff;
+}
+.cal-cell.is-selected {
+  outline: 2px solid #60a5fa; /* 空色の選択リング */
+  outline-offset: 1px;
+}
+
+/* 件数バッジ */
+.event-badges {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+}
+.calendar-page .badge {
+  display: inline-block;
+  min-width: 22px;
+  padding: 2px 6px;
+  font-size: 12px;
+  text-align: center;
+  border-radius: 9999px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+/* 当日リスト */
+.daylist-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.daylist-header h2 {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.daylist-header h2 .muted {
+  font-size: 20px;
+  color: #6b7280;
+}
+.daylist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.daylist-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+}
+.daylist-item + .daylist-item { margin-top: 8px; }
+
+.daylist-title {
+  font-weight: 600;
+  font-size: 15px;
+  margin-bottom: 2px;
+}
+.daylist-note {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+/* 「詳細へ」リンク風ボタン（サイト全体の .btn がある場合は置き換えOK） */
+.btn-link {
+  display: inline-block;
+  padding: 6px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  text-decoration: none;
+  color: #111827;
+}
+.btn-link:hover {
+  background: #f9fafb;
+}
+
+/* ===== 週末色（曜日ヘッダー）— PC/スマホ共通 ===== */
+.cal-weekday:nth-child(1) {
+  color: #ef4444;
+}
+
+.cal-weekday:nth-child(7) {
+  color: #3b82f6;
+}
+
+/* ===== 週末色（セル内の数字）— 当月/前後月で濃淡調整 ===== */
+.cal-cell.is-sun {
+  background: #fff5f5;     /* 薄い赤背景 */
+  border-color: #fecaca;   /* 赤っぽい枠 */
+}
+
+.cal-cell.is-sun .date-number {
+  color: #dc2626;
+}
+
+.cal-cell.is-sat .date-number {
+  color: #2563eb;
+}
+
+.cal-cell.is-out.is-sun .date-number {
+  color: #f87171;
+}
+
+.cal-cell.is-out.is-sat .date-number {
+  color: #93c5fd;
+}
+
+/* ===== 祝日スタイル ===== */
+.cal-cell.is-holiday {
+  background: #fff5f5;     /* 薄い赤背景 */
+  border-color: #fecaca;   /* 赤っぽい枠 */
+}
+
+.cal-cell.is-holiday .date-number {
+  color: #dc2626;          /* 赤文字 */
+  font-weight: 700;
+}
+
+/* 今日が祝日でもリングを優先（必要なら追記） */
+.cal-cell.is-today.is-holiday::before {
+  border-color: #f59e0b; /* or #60a5fa（選択時） */
+}
+
+/* ===== 今日ハイライト（数字の裏にふわっとチップ） ===== */
+.cal-cell .date-number {
+  position: relative;
+  z-index: 1;
+}
+
+/* 今日セル全体をリングで囲む */
+.cal-cell.is-today {
+  position: relative;
+}
+
+.cal-cell.is-today::before {
+  content: "";
+  position: absolute;
+  inset: 0;                     /* セル全体に広げる */
+  border-radius: 12px;          /* セルの角丸と合わせる */
+  border: 2px solid #f59e0b;    /* オレンジリング */
+  background: #fffbeb;          /* 淡い黄色の背景 */
+  pointer-events: none;         /* リングがクリックを邪魔しないように */
+  z-index: 0;                   /* 背景より上、バッジや文字より下 */
+}
+
+/* 選択(青リング)と重ならないよう、今日+選択時は少し淡く */
+.cal-cell.is-selected.is-today::before {
+  border-color: #60a5fa;
+  background: #e0f2fe;
+}
+
+
+
+/* バッジがハイライトの上に来るように（念のため） */
+.cal-cell {
+  position: relative;
+}
+
+.event-badges {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  z-index: 2;
+}
+
+/* 予定ありセルのホバー時、今日の背景が沈まないよう微調整（任意） */
+.cal-cell.has-events.is-today:hover {
+  background: #fffbeb;
+  border-color: #fed7aa;
+}
+
+
+/* ===== PC（641px以上）での視認性アップ ===== */
+@media (min-width: 641px) {
+  .cal-cell .date-number {
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  .cal-cell.has-events {
+    background: #f8fafc;
+    border-color: #dbeafe;
+  }
+
+  .event-badges {
+    right: 8px;
+    top: 8px;
+  }
+
+  .calendar-page .badge {
+    min-width: 34px; 
+    padding: 6px 10px;
+    font-size: 16px;
+    font-weight: 800;
+    line-height: 1;
+    border-radius: 14px;
+    background: #1d4ed8;
+    color: #ffffff;
+    border: none;
+    box-shadow: 0 1px 2px rgba(0,0,0,.08);
+  }
+
+  /* 選択リングは少し太く */
+  .cal-cell.is-selected {
+    outline: 3px solid #60a5fa;
+    outline-offset: 2px;
+  }
+}
+
+/* アクセシビリティ：高コントラスト指定のユーザー向け微強化 */
+@media (prefers-contrast: more) {
+  .calendar-page .badge {
+    box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #1d4ed8; /* 白縁→青で更にくっきり */
+  }
+}
+
+/* スマホ調整（～640px） */
+@media (max-width: 640px) {
+  /* 1) ヘッダー：タイトルを一段小さく、ナビボタンはタップ面積を確保 */
+  .cal-title {
+    font-size: 18px;
+  }
+  .btn-ghost {
+    padding: 8px 12px;
+    border-radius: 12px;
+  }
+
+  /* 2) グリッド：余白を詰めて、正方形に近いマスに */
+  .cal-grid {
+    gap: 3px;
+  }
+  .cal-weekday {
+    font-size: 11px;
+    padding: 6px 0;
+  }
+  .cal-cell {
+    font-size: clamp(12px, 2.8vw, 15px);
+    padding: 6px;
+    border-radius: 10px;
+    height: auto;
+    aspect-ratio: 1 / 1.05;
+  }
+  .cal-cell .date-number {
+    font-size: 1em;
+    font-weight: 700;
+  }
+
+  /* 3) 予定バッジ：スマホは“丸ドット”で視認性と省スペースを両立 */
+  .calendar-page .event-badges {
+    right: .45em;
+    top: .45em;
+  }
+  .calendar-page .badge {
+    /* バッジ文字サイズはセルの 0.9 倍 */
+    font-size: 0.9em;
+    /* バッジの最小幅を文字サイズ起点で可変 */
+    min-width: 1.7em;
+    padding: 0.25em 0.55em;
+    line-height: 1.1;
+    border-radius: 9999px;
+    background: #1d4ed8;
+    color: #fff;
+    border: none;
+  }
+
+  /* 4) 選択リング：タップ後の視認性UP（太め＆オフセット広め） */
+  .cal-cell.is-selected {
+    background: #f0f7ff;
+    border-color: #dbeafe;
+  }
+
+  .cal-cell.has-events {
+    background: #f8fafc;
+    border-color: #dbeafe;
+  }
+
+  /* バッジで日付が隠れにくいよう右側に余白を確保 */
+  .cal-cell.has-events .date-number {
+    padding-right: 2.2em; /* バッジ幅ぶんの退避スペース */
+  }
+
+  /* 5) 当日リスト：縦積み＆押しやすい行高に */
+  .daylist-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  .daylist-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 12px;
+  }
+  .daylist-title {
+    font-size: 16px; /* 1行でも見やすいサイズに微UP */
+  }
+  .daylist-note {
+    font-size: 13px;
+  }
+  /* 「詳細」リンクを右寄せ→全幅ボタン風に */
+  .btn-link {
+    width: 100%;
+    text-align: center;
+    padding: 10px 12px;       /* タップ面積を十分に */
+    border-radius: 12px;
+    font-weight: 600;
+  }
+}
+
+/* 高コントラスト選好ユーザー向けの微強化 */
+@media (prefers-contrast: more) {
+  .cal-cell.is-today .date-number::before {
+    box-shadow: 0 0 0 2px #b45309 inset; /* 少し濃いめ */
+  }
+}

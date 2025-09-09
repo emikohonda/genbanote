@@ -1,0 +1,330 @@
+/* =========================
+   Clients ページ専用スタイル
+   ========================= */
+
+/* ベースレイアウト */
+.clients-page .page-wrap {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 20px;
+}
+.clients-page .page-header {
+  margin-bottom: 16px;
+}
+.clients-page .page-header h1 {
+  font-size: 24px;
+  margin: 0 0 6px;
+}
+.clients-page .muted {
+  color: #666;
+  font-size: 14px;
+}
+
+/* カード */
+.clients-page .card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+.clients-page .form-card {
+  margin-top: 8px;
+}
+
+/* フォーム */
+.clients-page .form-field {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.clients-page .label {
+  font-size: 14px;
+  color: #374151;
+}
+.clients-page .input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 16px;
+}
+.clients-page .input:focus {
+  outline: none;
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+.clients-page .input[disabled] {
+  background: #f9fafb;
+  color: #9ca3af;
+}
+.clients-page .input-search {
+  max-width: 320px;
+}
+.clients-page .form-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+.clients-page .form-error {
+  color: #b91c1c;
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+/* ボタン */
+.clients-page .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-decoration: none;
+}
+.clients-page .btn-primary {
+  background: #0070f3;
+  color: white;
+}
+.clients-page .btn-primary:hover {
+  background: #005bb5;
+}
+.clients-page .btn-ghost {
+  background: transparent;
+  color: #374151;
+  border-color: #d1d5db;
+}
+.clients-page .btn-ghost:hover {
+  background: #f3f4f6;
+}
+
+/* ツールバー */
+.clients-page .toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 14px 0;
+  flex-wrap: wrap;
+}
+.clients-page .toolbar .left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1 1 auto;
+  min-width: 200px;
+}
+.clients-page .toolbar .right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+.clients-page .input-search {
+  flex: 1 1 auto;
+  max-width: none;
+}
+
+/* グリッド */
+.clients-page .grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+@media (max-width: 720px) {
+  .clients-page .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* カードの中身 */
+.clients-page .client-card {
+  display: grid;
+  gap: 6px;
+  transition: box-shadow 0.15s ease, transform 0.05s ease;
+  padding: 12px;
+}
+.clients-page .client-card:hover {
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
+}
+.clients-page .client-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+}
+.clients-page .client-meta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.clients-page .badge {
+  font-size: 12px;
+  color: #2563eb;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 9999px;
+  padding: 2px 8px;
+}
+
+/* 会社カードのヘッダー行（会社名＋アクション） */
+.clients-page .client-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* 会社名リンク */
+.clients-page .client-name-link {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+  text-decoration: none;
+}
+.clients-page .client-name-link:hover {
+  text-decoration: underline;
+}
+
+/* 編集ボタンの位置調整 */
+.clients-page .client-actions {
+  margin-left: auto; /* ← 右端に寄せる */
+}
+
+/* テキストエリア（入力UIをinputと揃える） */
+.clients-page .textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 16px;
+  resize: vertical;
+}
+.clients-page .textarea:focus {
+  outline: none;
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+.clients-page .textarea[disabled] {
+  background: #f9fafb;
+  color: #9ca3af;
+}
+
+/* 削除ボタン（workers と同じ赤系） */
+.clients-page .btn-danger {
+  background: #ef4444; /* red-500 */
+  color: #fff;
+  border-color: transparent;
+}
+.clients-page .btn-danger:hover {
+  background: #dc2626; /* red-600 */
+}
+
+/* form-actions の並びを "左右に分ける" バリアント（workersの編集ページと同様） */
+.clients-page .form-actions.space-between {
+  justify-content: space-between; /* 左: 削除 / 右: 戻る＋保存 */
+}
+
+/* スマホ時のサイズ微調整（既存に合わせる） */
+@media (max-width: 600px) {
+  .clients-page .textarea {
+    font-size: 15px;
+    padding: 8px 10px;
+  }
+}
+
+/* ===== 削除確認モーダル ===== */
+.clients-page .modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.5); /* gray-900/50 */
+  display: grid;
+  place-items: center;
+  z-index: 1400; /* ヘッダーより上に */
+}
+
+.clients-page .modal {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 18px;
+  width: min(480px, calc(100% - 32px));
+  box-shadow: 0 25px 50px -12px rgba(0,0,0,.25);
+}
+
+.clients-page .modal-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 0 8px;
+  color: #111827;
+}
+
+.clients-page .modal-text {
+  margin: 0 0 14px;
+  color: #374151;
+  font-size: 14px;
+}
+
+.clients-page .modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+/* その他 */
+.clients-page .skeleton {
+  padding: 16px;
+  color: #6b7280;
+}
+.clients-page .empty {
+  text-align: center;
+  padding: 28px;
+  display: grid;
+  gap: 12px;
+}
+
+/* --- スマホ調整 --- */
+@media (max-width: 600px) {
+  .clients-page .page-wrap {
+    padding: 12px;
+  }
+  .clients-page .page-header h1 {
+    font-size: 20px;
+  }
+  .clients-page .input {
+    font-size: 15px;
+    padding: 8px 10px;
+  }
+  .clients-page .btn {
+    font-size: 13px;
+    padding: 8px 12px;
+  }
+  .clients-page .toolbar {
+    gap: 8px;
+  }
+  .clients-page .toolbar .left {
+    flex: 1 1 60%;
+    min-width: 0;
+  }
+  .clients-page .toolbar .right {
+    flex: 0 0 auto;
+  }
+  .clients-page .input-search {
+    flex: 1 1 auto;
+    width: 100%;
+    max-width: none;
+  }
+}
+
+/* 小さめ端末での余白調整 */
+@media (max-width: 480px) {
+  .clients-page .modal {
+    padding: 16px;
+  }
+}
