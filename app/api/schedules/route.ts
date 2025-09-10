@@ -1,105 +1,46 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
-import {
-  collection,
-  getDocs,
-  query,
-  where,
-} from "firebase/firestore";
+import { collection, getDocs, query, where, Timestamp } from "firebase/firestore";
+
+function dayRangeJST(dateStr: string) {
+  const start = new Date(`${dateStr}T00:00:00+09:00`);
+  const end = new Date(`${dateStr}T00:00:00+09:00`);
+  end.setDate(end.getDate() + 1);
+  return { start, end };
+}
 
 /**
  * 使い方:
  *   /api/schedules?date=YYYY-MM-DD
  * 返り値:
- *   { count: number, items: any[] }
+ *   { count: number }
+ * 方針:
+ *   「startAt が本日の [00:00,24:00)（JST）」のみを対象にする
+ *   ※ 旧フィールド(date)や重なり判定はカウントから外す
  */
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
-    const dateStr = searchParams.get("date"); // 例: "2025-09-08"
-    if (!dateStr) {
-      return NextResponse.json({ count: 0, items: [] });
-    }
+    const dateStr = searchParams.get("date");
+    if (!dateStr) return NextResponse.json({ count: 0 });
 
-    // ▼ JSTのその日の範囲 [start, end)
-    //   ※ サーバ/クライアントのTZ差を避けるため、明示的に +09:00 を付与
-    const start = new Date(`${dateStr}T00:00:00+09:00`);
-    const end = new Date(`${dateStr}T00:00:00+09:00`);
-    end.setDate(end.getDate() + 1);
+    const { start, end } = dayRangeJST(dateStr);
 
-    const items: any[] = [];
-    const seen = new Set<string>();
+    const col = collection(db, "schedules");
+    const qy = query(
+      col,
+      where("startAt", ">=", Timestamp.fromDate(start)),
+      where("startAt", "<",  Timestamp.fromDate(end)),
+      // もし除外条件を使っているなら揃える（例）
+      // where("archived", "==", false),
+      // where("status", "in", ["open", "done"]),
+    );
 
-    // === パターンA: date が "YYYY-MM-DD" の 文字列保存 ===
-    {
-      const qs = query(
-        collection(db, "schedules"),
-        where("date", "==", dateStr)
-      );
-      const snap = await getDocs(qs);
-      for (const d of snap.docs) {
-        if (!seen.has(d.id)) {
-          items.push({ id: d.id, ...d.data() });
-          seen.add(d.id);
-        }
-      }
-    }
-
-    // === パターンB: date が Firestore Timestamp 保存 ===
-    //   その日の [start, end) に収まるレコード
-    {
-      const qt = query(
-        collection(db, "schedules"),
-        where("date", ">=", start),
-        where("date", "<", end)
-      );
-      const snap = await getDocs(qt);
-      for (const d of snap.docs) {
-        if (!seen.has(d.id)) {
-          items.push({ id: d.id, ...d.data() });
-          seen.add(d.id);
-        }
-      }
-    }
-
-    // === パターンC: startAt/endAt を使うレコード（時間帯含む）
-    //  Firestoreは異なる2フィールドの範囲同時指定ができないため、
-    //  startAt < end をクエリし、endAt >= start をメモリで絞り込む。
-    {
-      const qs = query(
-        collection(db, "schedules"),
-        where("startAt", "<", end)
-      );
-      const snap = await getDocs(qs);
-      for (const d of snap.docs) {
-        if (seen.has(d.id)) continue;
-        const data = d.data() as any;
-
-        const startAt =
-          (data.startAt?.toDate?.() as Date) ??
-          (typeof data.startAt === "string" ? new Date(data.startAt) : null);
-        const endAt =
-          (data.endAt?.toDate?.() as Date) ??
-          (typeof data.endAt === "string" ? new Date(data.endAt) : null);
-
-        // 重なり判定: [startAt, endAt) と [start, end) が交差
-        const overlaps =
-          !!startAt &&
-          !!endAt &&
-          startAt.getTime() < end.getTime() &&
-          endAt.getTime() >= start.getTime();
-
-        // 終日（endAtが翌日00:00なら）でも上の式でヒットします
-        if (overlaps) {
-          items.push({ id: d.id, ...data });
-          seen.add(d.id);
-        }
-      }
-    }
-
-    return NextResponse.json({ count: items.length, items });
+    const snap = await getDocs(qy);
+    const count = snap.size;
+    return NextResponse.json({ count });
   } catch (e: any) {
     console.error("/api/schedules GET error:", e);
-    return NextResponse.json({ count: 0, items: [], error: e?.message ?? "error" }, { status: 500 });
+    return NextResponse.json({ count: 0, error: e?.message ?? "error" }, { status: 500 });
   }
 }

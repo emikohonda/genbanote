@@ -179,9 +179,16 @@ export default function NewSchedulePage() {
           </div>
 
           <div className={styles.actions}>
-            <button className={styles.btn} disabled={!canSubmit}>追加</button>
-            <Link className={styles.btnGhost} href="/calendar">カレンダーへ</Link>
+            <div className={styles.rightActions}>
+              <Link href="/schedules" className={styles.btnGhost}>
+                キャンセル
+              </Link>
+              <button className={styles.btn} disabled={!canSubmit}>
+                新規作成
+              </button>
+            </div>
           </div>
+
         </form>
       </div>
 
@@ -220,14 +227,14 @@ export default function NewSchedulePage() {
 
             <div className={styles.modalActions}>
               <Link href="/calendar" className={styles.btnPrimary}>
-                カレンダーへ
+                カレンダー
               </Link>
               <button
                 ref={okButtonRef}
                 className={styles.btnSecondary}
                 onClick={() => router.push("/schedules")} // 一覧に戻る
               >
-                OK
+                予定一覧
               </button>
             </div>
           </div>

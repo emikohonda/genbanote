@@ -64,7 +64,7 @@
   box-shadow: 0 0 0 3px rgba(0, 112, 243, 0.15);
 }
 
-/* エラーっぽいときの簡易表示（aria-invalid=true のとき） */
+/* エラーっぽいときの簡易表示 */
 .input[aria-invalid="true"],
 .select[aria-invalid="true"] {
   border-color: #e65a5a;
@@ -87,14 +87,33 @@
   border-radius: 8px;
 }
 
-/* アクション行 */
+/* ===== アクション行 ===== */
 .actions {
   display: flex;
+  justify-content: space-end; /* 左右に分ける */
+  align-items: center;
   gap: 8px;
   margin-top: 30px;
 }
 
-/* ボタン */
+/* .leftActions {
+  display: flex;
+  align-items: center;
+} */
+
+.rightActions {
+  margin-left: auto; /* 右寄せ */
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn, .btnGhost, .btnDanger {
+  min-height: 44px;  /* タップしやすい高さ */
+  font-size: 16px;
+}
+
+/* ===== ボタン ===== */
 .btn {
   background: #0070f3;
   color: #fff;
@@ -133,6 +152,26 @@
   background: #f6f7fb;
 }
 
+/* 危険操作ボタン（削除用） */
+.btnDanger {
+  background: #e11d48; /* rose-600 */
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  text-align: center;
+  font-weight: 600;
+}
+.btnDanger:hover {
+  filter: brightness(0.95);
+  background: #be123c; /* rose-700 */
+}
+.btnDanger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* ===== Modal ===== */
 .modalOverlay {
   position: fixed;
@@ -145,13 +184,8 @@
 }
 
 @keyframes overlayFade {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .modal {
@@ -165,15 +199,8 @@
 }
 
 @keyframes modalPop {
-  from {
-    opacity: 0;
-    transform: translateY(8px) scale(0.98);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .modalClose {
@@ -213,7 +240,6 @@
   padding: 10px 16px;
   border-radius: 10px;
   background: #2563eb;
-  /* 目に優しいブルー。ブランド色に合わせてOK */
   color: #fff;
   text-decoration: none;
   font-weight: 600;
@@ -233,40 +259,31 @@
   font-weight: 600;
 }
 
-/* レスポンシブ */
-/* ==== モバイル（~639px）だけで上書き。PCの見た目はそのまま維持 ==== */
+/* ===== レスポンシブ ===== */
 @media (max-width: 639px) {
-
-  /* 画面端の誤タップ防止 & iPhoneノッチ対応 */
   .card {
     padding: 16px;
     padding-left: calc(16px + env(safe-area-inset-left));
     padding-right: calc(16px + env(safe-area-inset-right));
   }
 
-  /* ラベル・入力欄の間隔を統一（スマホ時のみ） */
   .field {
     gap: 6px;
     margin-bottom: 12px;
   }
 
-  /* タップしやすい高さ・iOSフォーカス時の拡大防止（スマホのみ） */
   .input,
   .select {
     min-height: 44px;
-    /* 指で押しやすい高さ */
     font-size: 16px;
-    /* iOSズーム防止（16px以上） */
     line-height: 1.4;
     -webkit-tap-highlight-color: transparent;
   }
 
-  /* フォーカスでラベルを青く（スマホのみ） */
   .field:focus-within .label {
     color: #0070f3;
   }
 
-  /* チェックボックス：当たり判定を広く、見やすく（スマホのみ） */
   .checkboxLabel {
     min-height: 44px;
     gap: 10px;
@@ -277,52 +294,48 @@
     accent-color: #0070f3;
   }
 
-  /* チェックボックスの列数：スマホは1列 */
   .checkboxGrid {
     grid-template-columns: 1fr;
   }
 
-  /* ボタン：スマホは縦並び＆全幅 */
+  /* モバイルでも横並び維持 */
   .actions {
-    flex-direction: column;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+  }
+  .leftActions,
+  .rightActions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .btn, .btnGhost, .btnDanger {
+    min-height: 38px;   /* ← 少し低めに */
+    font-size: 13px;    /* ← 文字サイズも少し小さめ */
+    padding: 6px 12px;  /* ← 横幅の余白も少し縮める */
   }
 
-  .btn,
-  .btnGhost {
-    min-height: 48px;
-    width: 100%;
-    font-size: 16px;
-  }
-
-  /* タイトルの視認性（スマホのみ少し小さめに） */
   .title {
     font-size: 18px;
     margin-bottom: 14px;
   }
 
-  /* 年配でも見やすい配慮（スマホ時は文字と押しやすさUP） */
-  @media (max-width: 600px) {
-    .modal {
-      padding: 22px 18px 18px;
-    }
-
-    .modalTitle {
-      font-size: 20px;
-    }
-
-    .modalBody {
-      font-size: 17px;
-    }
-
-    .btnPrimary,
-    .btnSecondary {
-      padding: 12px 16px;
-      font-size: 16px;
-    }
+  .modal {
+    padding: 22px 18px 18px;
   }
 
-  /* コントラストを少し強めたい場合は以下を有効化
-.modal { background: #fff; }
-.modalBody { color: #222; }
-*/
+  .modalTitle {
+    font-size: 20px;
+  }
+
+  .modalBody {
+    font-size: 17px;
+  }
+
+  .btnPrimary, .btnSecondary {
+    min-height: 38px;
+    padding: 8px 12px;  /* 同じく少しコンパクトに */
+    font-size: 13px;
+  }
 }

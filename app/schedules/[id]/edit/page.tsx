@@ -5,7 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
 import { db } from "@/lib/firebase";
 import {
-  doc, getDoc, updateDoc, collection, query, orderBy, onSnapshot, Timestamp, serverTimestamp
+  doc, getDoc, updateDoc, deleteDoc,
+  collection, query, orderBy, onSnapshot, Timestamp, serverTimestamp
 } from 'firebase/firestore';
 import type { Client, Worker } from "@/types/db";
 import Link from "next/link";
@@ -19,19 +20,14 @@ function jstDayRange(ymd: string) {
   return { start, end };
 }
 
-// 任意の入力（Timestamp / Date / string）から、JSTの 'YYYY-MM-DD' を安全に取り出す
+// 任意の入力から JST の 'YYYY-MM-DD' を安全に取り出す
 function toYmdJST(src: any): string {
   if (!src) return "";
-  // 文字列 'YYYY-MM-DD' はそのまま返す（ズレを防ぐ）
-  if (typeof src === "string" && /^\d{4}-\d{2}-\d{2}$/.test(src)) {
-    return src;
-  }
+  if (typeof src === "string" && /^\d{4}-\d{2}-\d{2}$/.test(src)) return src;
   let d: Date | null = null;
-  if (typeof src?.toDate === "function") {
-    d = src.toDate();
-  } else if (src instanceof Date) {
-    d = src;
-  } else {
+  if (typeof src?.toDate === "function") d = src.toDate();
+  else if (src instanceof Date) d = src;
+  else {
     const tmp = new Date(src);
     if (!isNaN(tmp.getTime())) d = tmp;
   }
@@ -56,7 +52,13 @@ export default function ScheduleEditPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [workers, setWorkers] = useState<Worker[]>([]);
 
-  // 既存データ読み込み（startAt → scheduledAt → 旧 date の順にフォールバック）
+  const [saving, setSaving] = useState(false);
+
+  // ▼ モーダル制御（追加）
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+
+  // 既存データ読み込み
   useEffect(() => {
     const load = async () => {
       const ref = doc(db, "schedules", id);
@@ -95,26 +97,70 @@ export default function ScheduleEditPage() {
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canSubmit) return;
+    if (!canSubmit || saving || confirming) return;
+    setSaving(true);
+    try {
+      const client = clients.find(c => c.id === clientId);
+      const selectedWorkers = workers.filter(w => workerIds.includes(w.id));
+      const { start, end } = jstDayRange(date);
 
-    const client = clients.find(c => c.id === clientId);
-    const selectedWorkers = workers.filter(w => workerIds.includes(w.id));
-    const { start, end } = jstDayRange(date);
+      await updateDoc(doc(db, "schedules", id), {
+        clientId,
+        clientName: client?.name ?? "(不明な取引先)",
+        siteName: siteName.trim(),
+        task: task.trim(),
+        workerIds,
+        workerNames: selectedWorkers.map(w => w.name),
+        startAt: Timestamp.fromDate(start),
+        endAt: Timestamp.fromDate(end),
+        updatedAt: serverTimestamp(),
+      });
 
-    await updateDoc(doc(db, "schedules", id), {
-      clientId,
-      clientName: client?.name ?? "(不明な取引先)",
-      siteName: siteName.trim(),
-      task: task.trim(),
-      workerIds,
-      workerNames: selectedWorkers.map(w => w.name),
-      startAt: Timestamp.fromDate(start),
-      endAt: Timestamp.fromDate(end),
-      updatedAt: serverTimestamp(),
-    });
-
-    router.push(`/schedules/${id}`);
+      router.push(`/schedules/${id}`);
+    } catch (err) {
+      console.error("update schedule failed:", err);
+      alert("保存に失敗しました。ネットワークや権限を確認してください。");
+    } finally {
+      setSaving(false);
+    }
   };
+
+  // ▼ ここからモーダル版の削除ロジック
+  const openConfirm = () => setConfirmOpen(true);
+  const closeConfirm = () => {
+    if (!confirming) setConfirmOpen(false);
+  };
+
+  useEffect(() => {
+    // モーダル中は背景スクロール固定 & Esc閉じ
+    if (confirmOpen) {
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      const onKey = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') closeConfirm();
+      };
+      window.addEventListener('keydown', onKey);
+      return () => {
+        document.body.style.overflow = prev;
+        window.removeEventListener('keydown', onKey);
+      };
+    }
+  }, [confirmOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const confirmDelete = async () => {
+    if (saving || confirming) return;
+    setConfirming(true);
+    try {
+      await deleteDoc(doc(db, "schedules", id));
+      router.replace('/schedules');
+    } catch (err) {
+      console.error("delete schedule failed:", err);
+      alert("削除に失敗しました。ネットワークや権限を確認してください。");
+      setConfirming(false);
+    }
+  };
+
+  const label = date ? `${date}「${siteName || ''}」` : (siteName || '(無題)');
 
   return (
     <div className={styles.wrapper}>
@@ -195,11 +241,75 @@ export default function ScheduleEditPage() {
           </div>
 
           <div className={styles.actions}>
-            <button className={styles.btn} disabled={!canSubmit}>保存</button>
-            <Link className={styles.btnGhost} href={`/schedules/${id}`}>キャンセル</Link>
+            <div className={styles.leftActions}>
+              <button
+                type="button"
+                className={styles.btnDanger}
+                onClick={openConfirm}
+                disabled={saving || confirming}
+                aria-disabled={saving || confirming}
+                title="この予定を削除します"
+              >
+                {confirming ? "削除中..." : "削除する"}
+              </button>
+            </div>
+
+            <div className={styles.rightActions}>
+              <Link className={styles.btnGhost} href={`/schedules/${id}`}>キャンセル</Link>
+              <button className={styles.btn} disabled={!canSubmit || saving || confirming}>
+                {saving ? "保存中..." : "保存する"}
+              </button>
+            </div>
           </div>
         </form>
       </div>
+
+      {/* ▼ 削除確認モーダル */}
+      {confirmOpen && (
+        <div
+          className={styles.modalOverlay}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-title"
+          onClick={closeConfirm}
+        >
+          <div
+            className={styles.modal}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              className={styles.modalClose}
+              aria-label="閉じる"
+              onClick={closeConfirm}
+            >
+              ×
+            </button>
+            <h2 id="delete-title" className={styles.modalTitle}>予定を削除しますか？</h2>
+            <div className={styles.modalBody}>
+              この操作は元に戻せません。<br />
+              {/* 対象：{label} */}
+            </div>
+            <div className={styles.modalActions}>
+              <button
+                type="button"
+                className={styles.btnSecondary}
+                onClick={closeConfirm}
+                disabled={confirming}
+              >
+                キャンセル
+              </button>
+              <button
+                type="button"
+                className={styles.btnDanger}
+                onClick={confirmDelete}
+                disabled={confirming}
+              >
+                {confirming ? "削除中..." : "削除する"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

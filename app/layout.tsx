@@ -1,12 +1,22 @@
-import "../styles/globals.css";
-import '../styles/layout.css';
+// app/layout.tsx
+import type { Metadata } from "next";
+import "@/styles/globals.css";
+import "@/styles/layout.css";
 import Link from "next/link";
+import NavAutoClose from "@/components/NavAutoClose"; // ここもエイリアスに統一推奨
 import { ReactNode } from "react";
-import NavAutoClose from "../components/NavAutoClose";
 
-export const metadata = {
-  title: 'GenbaNote',
-  description: '現場データを集計して請求書を作成するWebアプリです。',
+export const metadata: Metadata = {
+  title: "GenbaNote",
+  description: "建設業向け業務管理アプリ。",
+  icons: {
+    icon: "/favicon.ico",            // 通常のブラウザ用
+    shortcut: "/favicon.ico",        // ショートカット
+    apple: "/apple-touch-icon.png",  // iPhone/iPad ホーム追加用
+  },
+  manifest: "/manifest.webmanifest",
+  // （任意）テーマカラーを設定しておくとモバイルのUI色が馴染む
+  // themeColor: "#ffffff",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
@@ -19,13 +29,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               <Link href="/">GenbaNote</Link>
             </div>
 
-            {/* ← 先にチェックボックスとラベル */}
             <input id="nav-toggle" type="checkbox" className="nav-checkbox" />
             <label htmlFor="nav-toggle" aria-controls="site-nav" className="nav-toggle menu-btn">
               メニュー
             </label>
 
-            {/* ← nav はこの後ろ（兄弟セレクタが効くように） */}
             <nav className="main-nav" id="site-nav">
               <ul>
                 <li><Link href="/">ホーム</Link></li>
@@ -33,7 +41,6 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                 <li><Link href="/schedules">予定一覧</Link></li>
                 <li><Link href="/clients">取引先</Link></li>
                 <li><Link href="/workers">外注先</Link></li>
-                {/* <li><Link href="/settings">設定</Link></li> */}
               </ul>
             </nav>
           </div>
