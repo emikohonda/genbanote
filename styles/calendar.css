@@ -1,3 +1,33 @@
+/* ===== 上部ツールバー（タイトル＋新規作成） ===== */
+.cal-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px; /* 下のカードと少し間隔を空ける */
+}
+.cal-topbar-title {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0;
+}
+
+/* カレンダーページ専用の主ボタン（グローバルに .btn がある場合も干渉しにくいようスコープ） */
+.calendar-page .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;         /* ← 縦横の余白を少し小さく */
+  border-radius: 8px;        /* ← 角丸も気持ち小さめに */
+  border: 1px solid #e5e7eb;
+  background: #0070f3;
+  color: #fff;
+  font-size: 14px;           /* ← フォントも気持ち小さく */
+  text-decoration: none;
+  cursor: pointer;
+}
+.calendar-page .btn:hover { opacity: 0.9; }
+
 /* レイアウト */
 .calendar-page .cal-header {
   display: flex;
@@ -329,6 +359,12 @@
     font-weight: 700;
   }
 
+  .calendar-page .btn {
+    padding: 6px 10px;   /* ← 余白を減らす */
+    font-size: 13px;     /* ← 文字も少し小さめに */
+    border-radius: 8px;  /* ← 角丸も控えめ */
+  }
+
   /* 3) 予定バッジ：スマホは“丸ドット”で視認性と省スペースを両立 */
   .calendar-page .event-badges {
     right: .45em;
@@ -397,3 +433,9 @@
     box-shadow: 0 0 0 2px #b45309 inset; /* 少し濃いめ */
   }
 }
+
+/* モバイル微調整 */
+@media (max-width: 640px) {
+  .cal-topbar-title { font-size: 20px; }
+}
+

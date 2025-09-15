@@ -141,6 +141,19 @@ export default function CalendarPage() {
 
   return (
     <main className="page-wrap calendar-page">
+      {/* 上部ツールバー：タイトル＋新規作成 */}
+      <div className="cal-topbar">
+        <h1 className="cal-topbar-title">カレンダー</h1>
+        <Link
+          href="/schedules/new"
+          className="btn"
+          accessKey="n"
+          aria-label="予定を新規作成 (ショートカット: N)"
+        >
+          ＋ 新規作成
+        </Link>
+      </div>
+
       <section className="card">
         <div className="cal-header">
           <button className="btn-ghost" onClick={goPrevMonth} aria-label="前の月へ">◀</button>
@@ -211,7 +224,7 @@ export default function CalendarPage() {
             当日の予定
             {selectedYmd && <span className="muted">（{selectedEvents.length}件）</span>}
           </h2>
-        <p className="muted">{selectedYmd ?? '— 未選択 —'}</p>
+          <p className="muted">{selectedYmd ?? '— 未選択 —'}</p>
         </header>
 
         {selectedYmd && selectedEvents.length === 0 && <p className="muted">選択日の予定はありません</p>}
