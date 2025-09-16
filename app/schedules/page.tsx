@@ -1,4 +1,3 @@
-// app/schedules/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -23,6 +22,8 @@ type FSched = {
   task?: string;
   createdAt?: FirestoreTimestamp | string | number | null;
   updatedAt?: FirestoreTimestamp | string | number | null;
+
+  status?: 'complete' | 'incomplete';
 };
 
 type Row = {
@@ -34,6 +35,7 @@ type Row = {
   task: string;
   createdAt: string;
   updatedAt: string;
+  status: 'complete' | 'incomplete';
 };
 
 function anyToDate(v: FSched["date"] | FSched["startAt"]): Date | null {
@@ -96,6 +98,7 @@ export default function SchedulesPage() {
           task: data.task ?? "",
           createdAt: fmtDateTimeJP(data.createdAt),
           updatedAt: fmtDateTimeJP(data.updatedAt),
+          status: data.status === 'complete' ? 'complete' : 'incomplete',
         };
       });
       setRows(list);
@@ -123,7 +126,16 @@ export default function SchedulesPage() {
           return (
             <Link key={r.id} href={`/schedules/${r.id}`} className={styles.cardLink}>
               <div className={styles.card}>
-                <div className={styles.date}>{r.dateJP || "-"}</div>
+                <div className={styles.date}>
+                  {r.dateJP || "-"}
+                  <span
+                    className={`${styles.statusBadge} ${styles.badgeSm} ${r.status === "complete" ? styles.complete : styles.incomplete}`}
+                    aria-label={r.status === "complete" ? "完了済み" : "未完了"}
+                    title={r.status === "complete" ? "完了済み" : "未完了"}
+                  >
+                    {r.status === "complete" ? "完了" : "未完了"}
+                  </span>
+                </div>
                 <div className={styles.site}>{r.siteName}</div>
                 <div className={styles.task}>{r.task}</div>
                 <div className={styles.client}>

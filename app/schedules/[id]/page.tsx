@@ -23,6 +23,8 @@ type ScheduleDoc = {
   workerNames?: string[];
   createdAt?: FirestoreTimestamp | string | number | null;
   updatedAt?: FirestoreTimestamp | string | number | null;
+  status?: 'complete' | 'incomplete';
+  completedAt?: FirestoreTimestamp | null;
 };
 
 function anyToDate(v: ScheduleDoc['date'] | ScheduleDoc['startAt'] | ScheduleDoc['createdAt']): Date | null {
@@ -90,13 +92,26 @@ export default function ScheduleShowPage() {
   const workDate = formatJPDate(anyToDate(data.startAt ?? data.date ?? null));
   const created = formatJPDateTime(anyToDate(data.createdAt ?? null));
   const updated = formatJPDateTime(anyToDate(data.updatedAt ?? null));
+  const completed = formatJPDateTime(anyToDate(data.completedAt ?? null));
+
+  //ステータスを安全に解釈（無い場合は未完了）
+  const status: 'complete' | 'incomplete' = data.status === 'complete' ? 'complete' : 'incomplete';
 
   const clientLatest = data.clientId ? clientsMap.get(data.clientId) : undefined;
 
   return (
     <main className={styles.wrapper}>
       <header className={styles.header} style={{ marginBottom: 12 }}>
-        <h1 className={styles.title}>予定の詳細</h1>
+        <h1 className={styles.title}>
+          予定の詳細
+          <span
+            className={`${styles.statusBadge} ${status === 'complete' ? styles.complete : styles.incomplete}`}
+            aria-label={status === 'complete' ? '完了済み' : '未完了'}
+            title={status === 'complete' ? '完了済み' : '未完了'}
+          >
+            {status === 'complete' ? '完了済み' : '未完了'}  
+          </span>  
+        </h1>
         <div className={styles.headerActions}>
           <Link href={`/schedules/${id}/edit`} className={styles.btnPrimary}>編集</Link>
           <Link href="/schedules" className={styles.btnGhost}>一覧へ戻る</Link>
@@ -138,6 +153,7 @@ export default function ScheduleShowPage() {
         <div className={styles.detailMeta}>
           <span>作成日: {created}</span>
           <span>更新日: {updated}</span>
+          <span>完了日: {status === 'complete' ? completed : "-"}</span>
         </div>
       </article>
     </main>

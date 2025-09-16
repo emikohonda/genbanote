@@ -54,6 +54,8 @@ export default function ScheduleEditPage() {
 
   const [saving, setSaving] = useState(false);
 
+  const [isComplete, setIsComplete] = useState(false);
+
   // ▼ モーダル制御（追加）
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -71,6 +73,9 @@ export default function ScheduleEditPage() {
         setSiteName(d.siteName ?? "");
         setTask(d.task ?? "");
         setWorkerIds(d.workerIds ?? []);
+
+        //status 読み込み（無い場合は未完了扱い）
+        setIsComplete(d.status === "complete");
       }
     };
     load();
@@ -104,6 +109,11 @@ export default function ScheduleEditPage() {
       const selectedWorkers = workers.filter(w => workerIds.includes(w.id));
       const { start, end } = jstDayRange(date);
 
+      //保存用のステータス
+      const status = isComplete ? 'complete' : 'incomplete';
+      //ルールで complete のとき completedAt 必須にしているならserverTimestamp() を入れる
+      const completedAt = isComplete ? serverTimestamp() : null;
+
       await updateDoc(doc(db, "schedules", id), {
         clientId,
         clientName: client?.name ?? "(不明な取引先)",
@@ -113,6 +123,10 @@ export default function ScheduleEditPage() {
         workerNames: selectedWorkers.map(w => w.name),
         startAt: Timestamp.fromDate(start),
         endAt: Timestamp.fromDate(end),
+        //ステータス更新
+        status,
+        completedAt,
+        
         updatedAt: serverTimestamp(),
       });
 
@@ -239,6 +253,18 @@ export default function ScheduleEditPage() {
               ))}
             </div>
           </div>
+
+          <label className={styles.field}>
+            <div className={styles.label}>ステータス</div>
+            <label className={styles.checkboxLabel}>
+              <input
+                type="checkbox"
+                checked={isComplete}
+                onChange={(e) => setIsComplete(e.target.checked)}
+              />
+              <span>完了済み</span>
+            </label>
+          </label>
 
           <div className={styles.actions}>
             <div className={styles.leftActions}>

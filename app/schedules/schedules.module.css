@@ -264,6 +264,34 @@
   border-radius: 6px;
 }
 
+.statusBadge {
+  display: inline-block;
+  align-items: center;
+  gap: 6px;
+  margin-left: 8px;
+  padding: 4px 8px;
+  font-size: 12px;
+  line-height: 1;
+  border-radius: 9999px;
+  font-weight: 600;
+  color: #fff;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.budgeSm {
+  padding: 1px 6px;
+  font-size: 11px;
+}
+
+/* 完了/未完了の色 */
+.complete {
+  background: #6b7280; /* 灰色 (Tailwindのgray-500相当) */
+}
+
+.incomplete {
+  background: #ef4444; /* 赤色 (Tailwindのred-500相当) */
+}
 
 
 /* 📱 スマホ対応 */

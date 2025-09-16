@@ -24,6 +24,9 @@ export default function NewSchedulePage() {
   const [openModal, setOpenModal] = useState(false);
   const okButtonRef = useRef<HTMLButtonElement | null>(null);
 
+  // 完了トグル用
+  const [isComplete, setIsComplete] = useState(false);
+
   useEffect(() => {
     const unsubC = onSnapshot(query(collection(db, "clients"), orderBy("name")), (s) => {
       setClients(s.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as Client[]);
@@ -68,6 +71,10 @@ export default function NewSchedulePage() {
     // JST基準で終日レンジを作成（保存自体はUTCのTimestampに）
     const { start, end } = jstDayRange(date);
 
+    //ステータス用の値
+    const status = isComplete ? 'complete' : 'incomplete';
+    const completedAt = isComplete ? serverTimestamp() : null;
+
     await addDoc(collection(db, "schedules"), {
       clientId,
       clientName: client?.name ?? "(不明な取引先)",
@@ -80,8 +87,9 @@ export default function NewSchedulePage() {
       startAt: Timestamp.fromDate(start),
       endAt: Timestamp.fromDate(end),
 
-      // （任意・後方互換）既存の仕組みが必要なら文字列dateも当面残せます
-      // date,
+      //ステータス保存
+      status,
+      completedAt,
 
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
@@ -89,6 +97,9 @@ export default function NewSchedulePage() {
 
     // フォームをリセット
     setDate(""); setClientId(""); setSiteName(""); setTask(""); setWorkerIds([]);
+
+    //チェックもリセット
+    setIsComplete(false);
 
     // モーダルを開く（alertの代替）
     setOpenModal(true);
@@ -177,6 +188,18 @@ export default function NewSchedulePage() {
               ))}
             </div>
           </div>
+
+          <label className={styles.field}>
+            <div className={styles.label}>ステータス</div>
+            <label className={styles.checkboxLabel}>
+              <input
+                type='checkbox'
+                checked={isComplete}
+                onChange={(e) => setIsComplete(e.target.checked)}
+              />
+              <span>完了済み</span>
+            </label>
+          </label>
 
           <div className={styles.actions}>
             <div className={styles.rightActions}>
