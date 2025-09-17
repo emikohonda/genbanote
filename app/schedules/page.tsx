@@ -1,3 +1,4 @@
+// app/schedules/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -23,7 +24,9 @@ type FSched = {
   createdAt?: FirestoreTimestamp | string | number | null;
   updatedAt?: FirestoreTimestamp | string | number | null;
 
-  status?: 'complete' | 'incomplete';
+  // ✅ ステータス（新→旧の順で優先）
+  done?: boolean; // 新（正準）
+  status?: "complete" | "incomplete"; // 旧
 };
 
 type Row = {
@@ -35,7 +38,7 @@ type Row = {
   task: string;
   createdAt: string;
   updatedAt: string;
-  status: 'complete' | 'incomplete';
+  status: "complete" | "incomplete";
 };
 
 function anyToDate(v: FSched["date"] | FSched["startAt"]): Date | null {
@@ -86,9 +89,15 @@ export default function SchedulesPage() {
     const unsub = onSnapshot(q, (snap) => {
       const list: Row[] = snap.docs.map((d) => {
         const data = d.data() as FSched;
+
+        // 日付は新( startAt )→旧( date )の順で解釈
         const start = data.startAt?.toDate
           ? data.startAt.toDate()
           : anyToDate(data.date ?? null);
+
+        // ✅ ステータスは done(boolean) を優先、無ければ旧 status
+        const isComplete = data.done === true || data.status === "complete";
+
         return {
           id: d.id,
           dateJP: formatJPDate(start),
@@ -98,7 +107,7 @@ export default function SchedulesPage() {
           task: data.task ?? "",
           createdAt: fmtDateTimeJP(data.createdAt),
           updatedAt: fmtDateTimeJP(data.updatedAt),
-          status: data.status === 'complete' ? 'complete' : 'incomplete',
+          status: isComplete ? "complete" : "incomplete",
         };
       });
       setRows(list);
@@ -136,14 +145,14 @@ export default function SchedulesPage() {
                     {r.status === "complete" ? "完了" : "未完了"}
                   </span>
                 </div>
-                <div className={styles.site}>{r.siteName}</div>
-                <div className={styles.task}>{r.task}</div>
+                <div className={styles.site}>{r.siteName || "-"}</div>
+                <div className={styles.task}>{r.task || "-"}</div>
                 <div className={styles.client}>
-                  取引先: {clientLatest ?? r.clientName ?? "-"}
+                  取引先: {clientLatest ?? (r.clientName || "-")}
                 </div>
                 <div className={styles.meta}>
-                  <span>作成: {r.createdAt}</span>
-                  <span>更新: {r.updatedAt}</span>
+                  <span>作成: {r.createdAt || "-"}</span>
+                  <span>更新: {r.updatedAt || "-"}</span>
                 </div>
               </div>
             </Link>

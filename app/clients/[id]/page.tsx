@@ -1,10 +1,10 @@
-// app/clients/[id]/page.tsx（差分込みの完成形）
+// app/clients/[id]/page.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { getDocData, updateWithTimestamps } from '@/lib/firestoreHelpers';
+import { getDocData } from '@/lib/firestoreHelpers';
 import type { Client } from '@/types/client';
 import '@/styles/clients.css';
 
@@ -17,7 +17,11 @@ import {
   writeBatch,
   deleteDoc,
   doc,
+  updateDoc,
+  serverTimestamp,
 } from 'firebase/firestore';
+
+import { ensureUid } from '@/lib/authReady';
 
 export default function EditClientPage() {
   const { id } = useParams();
@@ -31,7 +35,7 @@ export default function EditClientPage() {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
-  const [confirmOpen, setConfirmOpen] = useState(false); // ← 追加：モーダル開閉
+  const [confirmOpen, setConfirmOpen] = useState(false); // モーダル開閉
 
   useEffect(() => {
     (async () => {
@@ -49,6 +53,7 @@ export default function EditClientPage() {
     })();
   }, [id]);
 
+  // 保存
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -60,39 +65,47 @@ export default function EditClientPage() {
     }
 
     const normalizedPhone = phone.trim() ? phone.trim() : null;
-    const normalizedMemo  = memo.trim() ? memo.trim() : null;
+    const normalizedMemo = memo.trim() ? memo.trim() : null;
 
     setSaving(true);
     try {
-      // 1) 取引先更新
-      await updateWithTimestamps<Client>(
-        'clients',
-        id as string,
-        { name: trimmedName, phone: normalizedPhone, memo: normalizedMemo },
-        null
-      );
+      const uid = await ensureUid();
 
-      // 2) schedules 側の clientName を同期
-      const qref = query(collection(db, 'schedules'), where('clientId', '==', id));
+      // 1) clients 本体を更新
+      const ref = doc(db, 'clients', id as string);
+      await updateDoc(ref, {
+        name: trimmedName,
+        phone: normalizedPhone,
+        memo: normalizedMemo,
+        updatedAt: serverTimestamp(),
+        createdBy: uid,
+      });
+
+      // 2) schedules 側の clientName を自分のだけ同期
+      const qref = query(
+        collection(db, 'schedules'),
+        where('clientId', '==', id),
+        where('createdBy', '==', uid)
+      );
       const snap = await getDocs(qref);
       if (!snap.empty) {
         const batch = writeBatch(db);
-        snap.forEach(docSnap => {
+        snap.forEach((docSnap) => {
           batch.update(docSnap.ref, { clientName: trimmedName });
         });
         await batch.commit();
       }
 
       router.push('/clients');
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      console.error('保存エラー:', err.code, err.message, err);
       setError('保存に失敗しました。');
     } finally {
       setSaving(false);
     }
   };
 
-  // 実削除処理（モーダルの「削除する」から実行）
+  // 削除（モーダル内）
   const handleDeleteConfirmed = async () => {
     if (!id) return;
     setError('');
@@ -101,7 +114,9 @@ export default function EditClientPage() {
       const qref = query(collection(db, 'schedules'), where('clientId', '==', id));
       const snap = await getDocs(qref);
       if (!snap.empty) {
-        setError('この取引先に紐づくスケジュールがあります。先にスケジュールを変更または削除してください。');
+        setError(
+          'この取引先に紐づくスケジュールがあります。先にスケジュールを変更または削除してください。'
+        );
         setDeleting(false);
         setConfirmOpen(false);
         return;
@@ -110,14 +125,14 @@ export default function EditClientPage() {
       await deleteDoc(doc(db, 'clients', id as string));
       router.push('/clients');
     } catch (err) {
-      console.error(err);
+      console.error('削除エラー:', err);
       setError('削除に失敗しました。通信環境を確認してください。');
       setDeleting(false);
       setConfirmOpen(false);
     }
   };
 
-  // Escで閉じられるように（任意）
+  // Escで閉じられるように
   useEffect(() => {
     if (!confirmOpen) return;
     const onKey = (e: KeyboardEvent) => {
@@ -178,7 +193,6 @@ export default function EditClientPage() {
           {error && <div className="form-error">{error}</div>}
 
           <div className="form-actions space-between">
-            {/* 左側：削除（モーダルを開く） */}
             <button
               type="button"
               className="btn btn-danger"
@@ -188,7 +202,6 @@ export default function EditClientPage() {
               {deleting ? '削除中…' : '削除する'}
             </button>
 
-            {/* 右側：戻る + 保存 */}
             <div style={{ display: 'flex', gap: 10 }}>
               <Link href="/clients" className="btn btn-ghost">一覧へ戻る</Link>
               <button type="submit" className="btn btn-primary" disabled={saving || deleting}>
@@ -199,7 +212,6 @@ export default function EditClientPage() {
         </form>
       </div>
 
-      {/* ===== 削除確認モーダル ===== */}
       {confirmOpen && (
         <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
           <div className="modal">

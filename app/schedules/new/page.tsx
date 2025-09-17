@@ -1,12 +1,20 @@
-// app/schedules/new/page.tsx
 "use client";
 import styles from '../new/newSchedule.module.css';
 import { useEffect, useMemo, useRef, useState } from "react";
-import { db } from "@/lib/firebase";
-import { addDoc, collection, onSnapshot, orderBy, query, serverTimestamp, Timestamp } from "firebase/firestore";
+import {
+  collection,
+  onSnapshot,
+  orderBy,
+  query,
+  Timestamp,
+} from "firebase/firestore";
 import type { Client, Worker } from "@/types/db";
 import Link from "next/link";
 import { useRouter } from 'next/navigation';
+import { auth, db } from '@/lib/firebase';
+
+// ★ 追加：ヘルパー使用
+import { createWithTimestamps } from '@/lib/firestoreHelpers';
 
 export default function NewSchedulePage() {
   const [date, setDate] = useState(""); // 'YYYY-MM-DD'
@@ -52,9 +60,8 @@ export default function NewSchedulePage() {
     return Boolean(date && clientId && siteName.trim() && task.trim());
   }, [date, clientId, siteName, task]);
 
-  // JSTのその日 [00:00, 翌日00:00) を作るヘルパー（このファイル内ローカルでOK）
+  // JSTのその日 [00:00, 翌日00:00) を作るヘルパー
   function jstDayRange(ymd: string) {
-    // ymd: 'YYYY-MM-DD'
     const start = new Date(`${ymd}T00:00:00+09:00`);
     const end = new Date(start);
     end.setDate(end.getDate() + 1);
@@ -68,45 +75,33 @@ export default function NewSchedulePage() {
     const client = clients.find(c => c.id === clientId);
     const selectedWorkers = workers.filter(w => workerIds.includes(w.id));
 
-    // JST基準で終日レンジを作成（保存自体はUTCのTimestampに）
+    // JST基準で終日レンジ
     const { start, end } = jstDayRange(date);
 
-    //ステータス用の値
-    const status = isComplete ? 'complete' : 'incomplete';
-    const completedAt = isComplete ? serverTimestamp() : null;
+    // 未ログインOK: uid は null のまま渡す（createdBy を付けない）
+    const uid = auth.currentUser?.uid ?? null;
 
-    await addDoc(collection(db, "schedules"), {
+    await createWithTimestamps('schedules', {
       clientId,
       clientName: client?.name ?? "(不明な取引先)",
       siteName: siteName.trim(),
       task: task.trim(),
       workerIds,
       workerNames: selectedWorkers.map(w => w.name),
-
-      // ★ Timestampで保存（当日に少しでも重なる判定がしやすい）
       startAt: Timestamp.fromDate(start),
       endAt: Timestamp.fromDate(end),
-
-      //ステータス保存
-      status,
-      completedAt,
-
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
+      done: isComplete,
+    }, uid);
 
     // フォームをリセット
     setDate(""); setClientId(""); setSiteName(""); setTask(""); setWorkerIds([]);
-
-    //チェックもリセット
     setIsComplete(false);
 
-    // モーダルを開く（alertの代替）
+    // モーダルを開く
     setOpenModal(true);
   };
 
   const closeModal = () => setOpenModal(false);
-
   const handleKeyDownOnOverlay = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'Escape') closeModal();
   };

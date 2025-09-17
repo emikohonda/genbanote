@@ -1,16 +1,17 @@
-// app/workers/[id]/page.tsx（差分込みの置き換え）
 'use client';
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
 import Link from 'next/link';
 
-import { db } from '@/lib/firebase';
+import { db, auth } from '@/lib/firebase';
 import {
   collection,
+  deleteDoc,
+  doc,
   getDocs,
   query,
+  serverTimestamp,
   where,
   writeBatch,
   DocumentData,
@@ -32,7 +33,6 @@ export default function EditWorkerPage() {
   const [error, setError] = useState('');
   const [deleting, setDeleting] = useState(false);
 
-  // 追加：削除確認モーダルの開閉
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
@@ -51,20 +51,19 @@ export default function EditWorkerPage() {
     })();
   }, [id]);
 
-  // 削除ボタン → モーダルを開く
+  // 削除
   const openDeleteConfirm = () => {
     if (!id) return;
     setConfirmOpen(true);
   };
 
-  // 実削除（モーダル内「削除する」）
   const handleDeleteConfirmed = async () => {
     if (!id) return;
 
     setDeleting(true);
     setError('');
     try {
-      // 1) schedules からこの worker を外す
+      // schedules からこの worker を外す（誰のものでも）
       const qref = query(collection(db, 'schedules'), where('workerIds', 'array-contains', id));
       const snap = await getDocs(qref);
       if (!snap.empty) {
@@ -74,7 +73,6 @@ export default function EditWorkerPage() {
           const ids: string[] = Array.isArray(s.workerIds) ? s.workerIds : [];
           const names: string[] = Array.isArray(s.workerNames) ? s.workerNames : [];
 
-          // id が一致しない要素だけ残す
           const keepIdx: number[] = [];
           ids.forEach((wid, idx) => { if (wid !== id) keepIdx.push(idx); });
 
@@ -90,13 +88,10 @@ export default function EditWorkerPage() {
         await batch.commit();
       }
 
-      // 2) workers 本体を削除
       await deleteDoc(doc(db, 'workers', id as string));
-
-      // 3) 一覧へ
       router.push('/workers');
     } catch (err) {
-      console.error(err);
+      console.error("削除エラー:", err);
       setError('削除に失敗しました。');
       setDeleting(false);
       setConfirmOpen(false);
@@ -104,7 +99,7 @@ export default function EditWorkerPage() {
     }
   };
 
-  // Escで閉じる（削除中は閉じない）
+  // Escで閉じる
   useEffect(() => {
     if (!confirmOpen) return;
     const onKey = (e: KeyboardEvent) => {
@@ -127,40 +122,44 @@ export default function EditWorkerPage() {
 
     setSaving(true);
     try {
-      // ★ Firestoreは undefined を嫌うので、可能なら null に正規化を推奨
-      await updateWithTimestamps<Worker>(
-        'workers',
-        id as string,
-        {
-          name: trimmed,
-          phone: phone.trim() ? phone.trim() : null,
-          memo: memo.trim() ? memo.trim() : null,
-        },
-        null
-      );
+      // 未ログインOK（uid は null のまま渡す）
+      const uid = auth.currentUser?.uid ?? null;
 
-      // workerNames を一括同期
-      const qref = query(collection(db, 'schedules'), where('workerIds', 'array-contains', id));
-      const snap = await getDocs(qref);
-      if (!snap.empty) {
-        const batch = writeBatch(db);
-        snap.forEach((docSnap) => {
-          const s = docSnap.data() as DocumentData;
-          const ids: string[] = Array.isArray(s.workerIds) ? s.workerIds : [];
-          const names: string[] = Array.isArray(s.workerNames) ? s.workerNames.slice() : [];
+      // workers 更新（createdBy/createdAt は触らない）
+      await updateWithTimestamps('workers', id as string, {
+        name: trimmed,
+        phone: phone.trim() ? phone.trim() : null,
+        memo: memo.trim() ? memo.trim() : null,
+      }, uid);
 
-          ids.forEach((wid, idx) => {
-            if (wid === id) names[idx] = trimmed;
+      // 自分が作成した schedules のみ workerNames を同期
+      if (uid) {
+        const qref = query(
+          collection(db, 'schedules'),
+          where('workerIds', 'array-contains', id),
+          where('createdBy', '==', uid)
+        );
+        const snap = await getDocs(qref);
+        if (!snap.empty) {
+          const batch = writeBatch(db);
+          snap.forEach((docSnap) => {
+            const s = docSnap.data() as DocumentData;
+            const ids: string[] = Array.isArray(s.workerIds) ? s.workerIds : [];
+            const names: string[] = Array.isArray(s.workerNames) ? s.workerNames.slice() : [];
+
+            ids.forEach((wid, idx) => {
+              if (wid === id) names[idx] = trimmed;
+            });
+
+            batch.update(docSnap.ref, { workerNames: names, updatedAt: serverTimestamp() });
           });
-
-          batch.update(docSnap.ref, { workerNames: names });
-        });
-        await batch.commit();
+          await batch.commit();
+        }
       }
 
       router.push('/workers');
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      console.error("保存エラー:", err.code, err.message, err);
       setError('保存に失敗しました。');
     } finally {
       setSaving(false);
@@ -236,14 +235,16 @@ export default function EditWorkerPage() {
         </div>
       </form>
 
-      {/* ===== 削除確認モーダル ===== */}
       {confirmOpen && (
         <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
           <div className="modal">
             <h3 id="confirm-title" className="modal-title">
               「{name || 'この外注先'}」を削除しますか？
             </h3>
-            <p className="modal-text">関連する予定からも外されます。<br />この操作は取り消せません。</p>
+            <p className="modal-text">
+              関連する予定からも外されます。<br />
+              この操作は取り消せません。
+            </p>
             <div className="modal-actions">
               <button
                 className="btn btn-ghost"

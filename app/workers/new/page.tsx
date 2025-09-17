@@ -7,6 +7,9 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import '@/styles/workers.css';
 import { useRouter } from 'next/navigation';
+import { ensureUid } from '@/lib/authReady';
+import { createWithTimestamps } from '@/lib/firestoreHelpers';
+import { auth } from '@/lib/firebase';
 
 export default function NewWorkerPage() {
   const router = useRouter();
@@ -17,40 +20,37 @@ export default function NewWorkerPage() {
   const [error, setError] = useState('');
 
   const submit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setError('');
+    e.preventDefault();
+    setError('');
 
-  const trimmed = name.trim();
-  const p = phone.trim();
-  const m = memo.trim();
+    const trimmed = name.trim();
+    const p = phone.trim();
+    const m = memo.trim();
 
-  if (!trimmed) {
-    setError('名前を入力してください');
-    return;
-  }
+    if (!trimmed) {
+      setError('名前を入力してください');
+      return;
+    }
 
-  setSaving(true);
-  try {
-    // 空欄のフィールドは入れない
-    const payload: any = {
-      name: trimmed,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      createdBy: null,
-      updatedBy: null,
-    };
-    if (p) payload.phone = p;
-    if (m) payload.memo  = m;
+    setSaving(true);
+    try {
+      // ★ 未ログインOK: uid が無ければ null を渡すだけ（createdByは付与しない）
+      const uid = auth.currentUser?.uid ?? null;
 
-    await addDoc(collection(db, 'workers'), payload);
-    router.push('/workers');
-  } catch (err) {
-    console.error(err);
-    setError('保存に失敗しました。');
-  } finally {
-    setSaving(false);
-  }
-};
+      await createWithTimestamps('workers', {
+        name: trimmed,
+        phone: p ? p : null,
+        memo: m ? m : null,
+      }, uid);
+
+      router.push('/workers');
+    } catch (err) {
+      console.error(err);
+      setError('保存に失敗しました。');
+    } finally {
+      setSaving(false);
+    }
+  };
 
 
   return (

@@ -1,16 +1,18 @@
-// app/schedules/[id]/edit/page.tsx
 'use client';
 
 import { useParams, useRouter } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
-import { db } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 import {
-  doc, getDoc, updateDoc, deleteDoc,
+  doc, getDoc, deleteDoc,
   collection, query, orderBy, onSnapshot, Timestamp, serverTimestamp
 } from 'firebase/firestore';
 import type { Client, Worker } from "@/types/db";
 import Link from "next/link";
 import styles from '../../new/newSchedule.module.css';
+
+// ★ 追加：ヘルパー使用
+import { updateWithTimestamps } from '@/lib/firestoreHelpers';
 
 // JST一日のレンジ
 function jstDayRange(ymd: string) {
@@ -53,19 +55,22 @@ export default function ScheduleEditPage() {
   const [workers, setWorkers] = useState<Worker[]>([]);
 
   const [saving, setSaving] = useState(false);
-
   const [isComplete, setIsComplete] = useState(false);
 
-  // ▼ モーダル制御（追加）
+  // ▼ モーダル制御（削除確認）
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirming, setConfirming] = useState(false);
 
   // 既存データ読み込み
   useEffect(() => {
     const load = async () => {
-      const ref = doc(db, "schedules", id);
-      const snap = await getDoc(ref);
-      if (snap.exists()) {
+      try {
+        const ref = doc(db, "schedules", id);
+        const snap = await getDoc(ref);
+        if (!snap.exists()) {
+          router.replace("/schedules");
+          return;
+        }
         const d = snap.data() as any;
         const dateSource = d.startAt ?? d.scheduledAt ?? d.date ?? null;
         setDate(toYmdJST(dateSource));
@@ -73,13 +78,16 @@ export default function ScheduleEditPage() {
         setSiteName(d.siteName ?? "");
         setTask(d.task ?? "");
         setWorkerIds(d.workerIds ?? []);
-
-        //status 読み込み（無い場合は未完了扱い）
-        setIsComplete(d.status === "complete");
+        // done(boolean) 正準／旧statusにも対応
+        setIsComplete(d.done === true || d.status === "complete");
+      } catch (err) {
+        console.error("読み込みエラー:", err);
+        alert("予定の読み込みに失敗しました。");
+        router.replace("/schedules");
       }
     };
     load();
-  }, [id]);
+  }, [id, router]);
 
   // マスターデータ購読
   useEffect(() => {
@@ -103,18 +111,17 @@ export default function ScheduleEditPage() {
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit || saving || confirming) return;
+
     setSaving(true);
     try {
       const client = clients.find(c => c.id === clientId);
       const selectedWorkers = workers.filter(w => workerIds.includes(w.id));
       const { start, end } = jstDayRange(date);
 
-      //保存用のステータス
-      const status = isComplete ? 'complete' : 'incomplete';
-      //ルールで complete のとき completedAt 必須にしているならserverTimestamp() を入れる
-      const completedAt = isComplete ? serverTimestamp() : null;
+      // 未ログインOK（uid は null で渡す）
+      const uid = auth.currentUser?.uid ?? null;
 
-      await updateDoc(doc(db, "schedules", id), {
+      await updateWithTimestamps('schedules', id, {
         clientId,
         clientName: client?.name ?? "(不明な取引先)",
         siteName: siteName.trim(),
@@ -123,17 +130,20 @@ export default function ScheduleEditPage() {
         workerNames: selectedWorkers.map(w => w.name),
         startAt: Timestamp.fromDate(start),
         endAt: Timestamp.fromDate(end),
-        //ステータス更新
-        status,
-        completedAt,
-        
-        updatedAt: serverTimestamp(),
-      });
+        // 正準は done(boolean)
+        done: isComplete,
+        // updatedAt/updatedBy は helper 側で付与
+        // createdBy/createdAt は触らない（helper側でも弾く）
+      }, uid);
 
       router.push(`/schedules/${id}`);
-    } catch (err) {
-      console.error("update schedule failed:", err);
-      alert("保存に失敗しました。ネットワークや権限を確認してください。");
+    } catch (err: any) {
+      console.error("update schedule failed:", err?.code, err?.message, err);
+      alert(
+        err?.code === "permission-denied"
+          ? "権限エラー：この予定は作成者のみが編集できます。（createdBy 付き）"
+          : "保存に失敗しました。"
+      );
     } finally {
       setSaving(false);
     }
@@ -167,9 +177,13 @@ export default function ScheduleEditPage() {
     try {
       await deleteDoc(doc(db, "schedules", id));
       router.replace('/schedules');
-    } catch (err) {
-      console.error("delete schedule failed:", err);
-      alert("削除に失敗しました。ネットワークや権限を確認してください。");
+    } catch (err: any) {
+      console.error("delete schedule failed:", err?.code, err?.message, err);
+      alert(
+        err?.code === "permission-denied"
+          ? "権限エラー：この予定は作成者のみが削除できます。（createdBy 付き）"
+          : "削除に失敗しました。ネットワークや権限を確認してください。"
+      );
       setConfirming(false);
     }
   };
@@ -246,7 +260,9 @@ export default function ScheduleEditPage() {
                   <input
                     type="checkbox"
                     checked={workerIds.includes(w.id)}
-                    onChange={() => toggleWorker(w.id)}
+                    onChange={() =>
+                      setWorkerIds(prev => prev.includes(w.id) ? prev.filter(x => x !== w.id) : [...prev, w.id])
+                    }
                   />
                   <span>{w.name}</span>
                 </label>

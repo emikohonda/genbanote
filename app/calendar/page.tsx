@@ -21,19 +21,17 @@ type Schedule = {
   clientId?: string;
   clientName?: string;
   note?: string;
-
-  // 新スキーマ
   startAt?: Timestamp | null;
   endAt?: Timestamp | null;
-
-  // 旧互換
-  scheduledAt?: Timestamp | null; // 過去の単一Timestamp
-  date?: string | null;           // 'YYYY-MM-DD'
+  scheduledAt?: Timestamp | null;
+  date?: string | null;
+  done?: boolean;
+  status?: 'complete' | 'incomplete';
 };
 
 const scheduleConverter: FirestoreDataConverter<Schedule> = {
-  toFirestore(data: Schedule) { return data; },
-  fromFirestore(snap: QueryDocumentSnapshot, options: SnapshotOptions): Schedule {
+  toFirestore(data) { return data; },
+  fromFirestore(snap, options) {
     const d = snap.data(options) as any;
     return {
       id: snap.id,
@@ -45,6 +43,9 @@ const scheduleConverter: FirestoreDataConverter<Schedule> = {
       endAt: d.endAt ?? null,
       scheduledAt: d.scheduledAt ?? null,
       date: typeof d.date === 'string' ? d.date : null,
+      // ★ 新旧スキーマを吸収
+      done: d.done === true || d.status === 'complete',
+      status: d.status, // あっても使わないが保持はOK
     };
   },
 };
@@ -150,7 +151,7 @@ export default function CalendarPage() {
           accessKey="n"
           aria-label="予定を新規作成 (ショートカット: N)"
         >
-          ＋ 新規作成
+          + 新規作成
         </Link>
       </div>
 
@@ -233,12 +234,18 @@ export default function CalendarPage() {
           <ul className="daylist">
             {selectedEvents.map(ev => {
               const clientLatest = ev.clientId ? clientsMap.get(ev.clientId) : undefined;
+              const isComplete = ev.done === true || ev.status === 'complete'; // 念のため旧にも対応
               return (
                 <li key={ev.id} className="daylist-item">
                   <div className="daylist-main">
                     <div className="daylist-title">
                       {ev.siteName ?? '（現場名 - 未入力）'}
-                      <span className="muted">（{clientLatest ?? ev.clientName ?? '取引先 - 未入力'}）</span>
+                      {/* ✅ Nullish と OR 併用はカッコ必須。空文字も「未入力」に落とす */}
+                      <span className="muted">
+                        （{clientLatest ?? (ev.clientName || '取引先 - 未入力')}）
+                      </span>
+                      {/* 追加: ステータス表示（CSSいじらず絵文字） */}
+                      <span style={{ marginLeft: 8 }}>{isComplete ? '⭕️ 完了済み' : '❌ 未完了'}</span>
                     </div>
                     {ev.note && <div className="daylist-note">{ev.note}</div>}
                   </div>

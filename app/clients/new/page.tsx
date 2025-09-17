@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createWithTimestamps } from '@/lib/firestoreHelpers';
 import type { Client } from '@/types/client';
+import { auth } from '@/lib/firebase';            // ← 変更: ensureUid をやめる
 import '@/styles/clients.css';
 
 export default function NewClientPage() {
@@ -32,15 +33,29 @@ export default function NewClientPage() {
 
     setLoading(true);
     try {
+      // ✅ Bルール対応：ログインしていれば createdBy を付ける／未ログインなら送らない
+      const uid = auth.currentUser?.uid;
+
       await createWithTimestamps<Client>(
         'clients',
-        { name: trimmed, phone: normalizedPhone, memo: normalizedMemo },
+        {
+          name: trimmed,
+          phone: normalizedPhone,
+          memo: normalizedMemo,
+          ...(uid && { createdBy: uid }),
+        },
         null
       );
+
       router.push('/clients');
     } catch (err: any) {
       console.error(err);
-      setError('登録に失敗しました。通信環境を確認してください。');
+      // permission-denied の場合も含めてユーザーに分かりやすく
+      setError(
+        err?.code === 'permission-denied'
+          ? '権限エラーです。ログイン状態や Firestore ルールを確認してください。'
+          : '登録に失敗しました。通信環境を確認してください。'
+      );
     } finally {
       setLoading(false);
     }

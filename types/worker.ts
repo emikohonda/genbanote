@@ -1,9 +1,11 @@
-// /types/worker.ts
+import type { Timestamp } from "firebase/firestore";
+
 export type Worker = {
   id?: string;
   name: string;
-  phone?: string | null; // ← ここをnull許可に
-  memo?: string | null;  // ← ここをnull許可に
-  createdAt?: any;
-  updatedAt?: any;
+  phone?: string | null;
+  memo?: string | null;
+  createdBy: string;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
 };

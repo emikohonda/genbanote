@@ -1,4 +1,3 @@
-// app/schedules/[id]/page.tsx
 'use client';
 
 import { useParams, useRouter } from "next/navigation";
@@ -12,22 +11,32 @@ import { useClientsMap } from '@/hooks/useClientsMap';
 type FirestoreTimestamp = { toDate: () => Date };
 
 type ScheduleDoc = {
+  // 日付系（新: startAt/endAt、旧: date）
   date?: string | number | FirestoreTimestamp | null; // 旧
   startAt?: FirestoreTimestamp | null; // 新
   endAt?: FirestoreTimestamp | null;
+
+  // メイン情報
   clientId?: string;
   clientName?: string;
   siteName?: string;
   task?: string;
   workerIds?: string[];
   workerNames?: string[];
+
+  // メタ
   createdAt?: FirestoreTimestamp | string | number | null;
   updatedAt?: FirestoreTimestamp | string | number | null;
-  status?: 'complete' | 'incomplete';
+
+  // ステータス（新: done、旧: status/ completedAt）
+  done?: boolean; // 新（正準）
+  status?: 'complete' | 'incomplete'; // 旧
   completedAt?: FirestoreTimestamp | null;
 };
 
-function anyToDate(v: ScheduleDoc['date'] | ScheduleDoc['startAt'] | ScheduleDoc['createdAt']): Date | null {
+function anyToDate(
+  v: ScheduleDoc['date'] | ScheduleDoc['startAt'] | ScheduleDoc['createdAt']
+): Date | null {
   if (!v) return null;
   if (typeof (v as any)?.toDate === 'function') return (v as FirestoreTimestamp).toDate();
   if (typeof v === 'number') {
@@ -50,7 +59,7 @@ function anyToDate(v: ScheduleDoc['date'] | ScheduleDoc['startAt'] | ScheduleDoc
 
 function formatJPDate(d: Date | null) {
   if (!d) return "-";
-  const w = ["日","月","火","水","木","金","土"][d.getDay()];
+  const w = ["日", "月", "火", "水", "木", "金", "土"][d.getDay()];
   return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日（${w}）`;
 }
 
@@ -73,17 +82,32 @@ export default function ScheduleShowPage() {
   const clientsMap = useClientsMap();
 
   useEffect(() => {
+    let cancelled = false;
+
     const load = async () => {
-      const ref = doc(db, "schedules", id);
-      const snap = await getDoc(ref);
-      if (!snap.exists()) {
-        router.replace('/schedules');
-        return;
+      setLoading(true);
+      try {
+        const ref = doc(db, "schedules", id);
+        const snap = await getDoc(ref);
+
+        if (!snap.exists()) {
+          router.replace("/schedules");
+          return;
+        }
+
+        if (cancelled) return;
+        setData(snap.data() as ScheduleDoc);
+      } catch (err) {
+        console.error("読み込みエラー:", err);
+        alert("予定の読み込みに失敗しました。");
+        router.replace("/schedules");
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      setData(snap.data() as ScheduleDoc);
-      setLoading(false);
     };
+
     load();
+    return () => { cancelled = true; };
   }, [id, router]);
 
   if (loading) return <main className={styles.wrapper}>読み込み中...</main>;
@@ -94,8 +118,10 @@ export default function ScheduleShowPage() {
   const updated = formatJPDateTime(anyToDate(data.updatedAt ?? null));
   const completed = formatJPDateTime(anyToDate(data.completedAt ?? null));
 
-  //ステータスを安全に解釈（無い場合は未完了）
-  const status: 'complete' | 'incomplete' = data.status === 'complete' ? 'complete' : 'incomplete';
+  // ✅ 新: done(boolean) を優先／旧: status にも対応
+  const isComplete = data.done === true || data.status === 'complete';
+  const statusLabel = isComplete ? '完了済み' : '未完了';
+  const statusClass = isComplete ? styles.complete : styles.incomplete;
 
   const clientLatest = data.clientId ? clientsMap.get(data.clientId) : undefined;
 
@@ -105,12 +131,12 @@ export default function ScheduleShowPage() {
         <h1 className={styles.title}>
           予定の詳細
           <span
-            className={`${styles.statusBadge} ${status === 'complete' ? styles.complete : styles.incomplete}`}
-            aria-label={status === 'complete' ? '完了済み' : '未完了'}
-            title={status === 'complete' ? '完了済み' : '未完了'}
+            className={`${styles.statusBadge} ${statusClass}`}
+            aria-label={statusLabel}
+            title={statusLabel}
           >
-            {status === 'complete' ? '完了済み' : '未完了'}  
-          </span>  
+            {statusLabel}
+          </span>
         </h1>
         <div className={styles.headerActions}>
           <Link href={`/schedules/${id}/edit`} className={styles.btnPrimary}>編集</Link>
@@ -153,7 +179,7 @@ export default function ScheduleShowPage() {
         <div className={styles.detailMeta}>
           <span>作成日: {created}</span>
           <span>更新日: {updated}</span>
-          <span>完了日: {status === 'complete' ? completed : "-"}</span>
+          <span>完了日: {isComplete ? completed : "-"}</span>
         </div>
       </article>
     </main>
